@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import speakeasy from 'speakeasy';
-import User from '../../models/User';
+import User from '../../models/userSchema';
 import emailVerifiedSuccessMail from '../../utils/emailVerifiedSuccessMail';
 import generateOtp from '../../utils/generateOtp';
 import generateToken from '../../utils/generateToken';
@@ -30,13 +30,18 @@ const login = async (req: Request, res: Response): Promise<void> => {
       });
       await twoFactorAuthOtp(email, otp);
       res.status(202).json({ message: 'OTP sent. Please verify your 2FA.' });
-    } else {
+      return;
+    } else if (user.otpVerified) {
       const token = generateToken(user);
       res.status(200).json({
         message: 'Login successful',
         token,
         role: user.role,
       });
+    } else {
+      res
+        .status(401)
+        .json({ message: 'User not verified Please verify your email' });
     }
   } catch (error) {
     console.error(error);
@@ -45,7 +50,8 @@ const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 const register = async (req: Request, res: Response): Promise<void> => {
-  const { email, password, username } = req.body;
+  const { email, password, firstName, lastName, phoneNumber, address } =
+    req.body;
   try {
     const userCheck = await User.findOne({ email });
     if (userCheck) {
@@ -58,7 +64,10 @@ const register = async (req: Request, res: Response): Promise<void> => {
     const user = new User({
       email,
       password,
-      username,
+      firstName,
+      lastName,
+      phoneNumber,
+      address,
       otp,
       otpExpiry,
       otpSecret: otpSecret.base32,
@@ -80,6 +89,10 @@ const verify = async (req: Request, res: Response): Promise<void> => {
   }
   try {
     const user = await User.findOne({ email });
+    if (user.otpVerified) {
+      res.status(401).json({ message: 'User already verified' });
+      return;
+    }
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
@@ -88,10 +101,10 @@ const verify = async (req: Request, res: Response): Promise<void> => {
       res.status(401).json({ message: 'Invalid or Expired OTP' });
       return;
     }
-    user.otp = null;
-    user.otpExpiry = null;
-    user.otpVerified = true;
-    await user.save();
+    const otpUpdate = await User.findOneAndUpdate(
+      { email },
+      { otp: null, otpExpiry: null, otpVerified: true },
+    );
     await emailVerifiedSuccessMail(email);
     res.status(200).json({ message: 'Email verified successfully' });
   } catch (error) {
@@ -132,4 +145,33 @@ const twoFactorAuth = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-export { login, register, twoFactorAuth, verify };
+const resendOtp = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ message: 'Email is required' });
+    return;
+  }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    if (user.otpVerified) {
+      res.status(401).json({ message: 'User already verified' });
+      return;
+    }
+    const otp = generateOtp(6);
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    const otpUpdate = await User.findOneAndUpdate(
+      { email },
+      { otp, otpExpiry },
+    );
+    await verifyOtpSend(email, otp);
+    res.status(200).json({ message: 'OTP sent. Please verify your email.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+export { login, register, resendOtp, twoFactorAuth, verify };

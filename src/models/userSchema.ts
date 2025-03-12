@@ -1,25 +1,45 @@
 import bcrypt from 'bcryptjs';
-import { Document, model, Schema } from 'mongoose';
+import { Document, model, models, ObjectId, Schema } from 'mongoose';
 export interface IUser extends Document {
-  username: string;
+  _id: ObjectId;
   email: string;
   password: string;
-  role: 'user' | 'admin' | 'vendor';
+  role: 'customer' | 'admin' | 'vendor';
   otp: string | null;
   otpExpiry: Date | null;
   otpVerified: boolean;
   otpSecret: string | null;
   is2FAEnabled: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  firstName: string;
+  lastName: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    isDefault: boolean;
+    fullAddress: string;
+  }[];
+  phoneNumber: string;
 }
 
 const userSchema = new Schema<IUser>(
   {
-    username: {
-      type: String,
-      required: [true, 'Username is required'],
-      trim: true,
-    },
+    firstName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    address: [
+      {
+        street: { type: String },
+        city: { type: String },
+        state: { type: String },
+        country: { type: String },
+        postalCode: { type: String },
+        isDefault: { type: Boolean, default: false },
+        fullAddress: { type: String, trim: true },
+      },
+    ],
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -37,8 +57,8 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['user', 'admin', 'vendor'],
-      default: 'user',
+      enum: ['customer', 'admin', 'vendor'],
+      default: 'customer',
     },
     otp: {
       type: String,
@@ -54,6 +74,7 @@ const userSchema = new Schema<IUser>(
     },
     otpSecret: { type: String },
     is2FAEnabled: { type: Boolean, default: false },
+    phoneNumber: { type: String },
   },
   {
     timestamps: true,
@@ -76,6 +97,6 @@ userSchema.methods.comparePassword = async function (
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = model<IUser>('User', userSchema);
+const User = models.User || model<IUser>('User', userSchema);
 
 export default User;

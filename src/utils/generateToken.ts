@@ -1,6 +1,6 @@
 import { configDotenv } from 'dotenv';
 import jwt from 'jsonwebtoken';
-import { IUser } from '../models/User';
+import { IUser } from '../models/userSchema';
 configDotenv();
 const JWT_SECRET = process.env._JWT_SECRET;
 const generateToken = (user: IUser) => {

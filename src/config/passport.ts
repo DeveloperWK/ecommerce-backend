@@ -1,7 +1,7 @@
 import { configDotenv } from 'dotenv';
 import passport from 'passport';
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
-import User from '../models/User';
+import User from '../models/userSchema';
 configDotenv();
 const JWT_SECRET = process.env._JWT_SECRET;
 if (!JWT_SECRET) {
