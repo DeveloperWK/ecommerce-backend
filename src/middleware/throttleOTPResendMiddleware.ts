@@ -1,4 +1,3 @@
-import console from 'console';
 import { NextFunction, Request, Response } from 'express';
 import User from '../models/userSchema';
 

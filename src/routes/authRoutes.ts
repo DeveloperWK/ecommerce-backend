@@ -10,10 +10,11 @@ import throttleOTPResendMiddleware from '../middleware/throttleOTPResendMiddlewa
 
 const router: Router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.post('/verify', verify);
-router.post('/two-factor-auth', twoFactorAuth);
-router.post('/resend-otp', throttleOTPResendMiddleware, resendOtp);
+router
+  .post('/register', register)
+  .post('/login', login)
+  .post('/verify', verify)
+  .post('/two-factor-auth', twoFactorAuth)
+  .post('/resend-otp', throttleOTPResendMiddleware, resendOtp);
 
 export default router;
