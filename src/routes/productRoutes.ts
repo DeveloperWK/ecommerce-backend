@@ -2,15 +2,17 @@ import { Router } from 'express';
 import {
   createProduct,
   deleteProduct,
-  getAllProducts,
   getProductById,
+  getProducts,
+  productSearch,
   updateProduct,
 } from '../controllers/products/productsController';
 
 const router: Router = Router();
 
 router
-  .get('', getAllProducts)
+  .get('', getProducts)
+  .get('/search', productSearch)
   .get('/:id', getProductById)
   .post('', createProduct)
   .patch('/:id', updateProduct)
