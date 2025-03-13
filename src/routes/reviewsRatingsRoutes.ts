@@ -10,7 +10,7 @@ const router: Router = Router();
 
 router
   .get('/products/:id', getProductsReview)
-  .post('/products/:id', createReview)
+  .post('', createReview)
   .patch('/:id', updateReview)
   .delete('/:id', deleteReview);
 

@@ -2,7 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import passport from 'passport';
+import passport from './config/passport';
 import errorHandler from './middleware/errorHandler';
 import notFoundMiddleware from './middleware/notFoundMiddleware';
 import adminSpecificRoutes from './routes/adminSpecificRoutes';

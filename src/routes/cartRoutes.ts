@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import {
   cart,
-  createCartItem,
   deleteCartItem,
+  getCartItems,
   updateCartItem,
 } from '../controllers/cart/cartController';
 const router: Router = Router();
 router
-  .get('', cart)
-  .post('/items', createCartItem)
+  .get('', getCartItems)
+  .post('', cart)
   .patch('/items/:id', updateCartItem)
   .delete('/items/:id', deleteCartItem);
 

@@ -1,4 +1,5 @@
 import { Document, model, models, ObjectId, Schema } from 'mongoose';
+import deleteProductKeysFromRedis from '../utils/deleteProductKeysFromRedis';
 export interface IProduct extends Document {
   _id: ObjectId;
   title: string;
@@ -12,6 +13,7 @@ export interface IProduct extends Document {
   slug: string;
   attributes: { name: string; value: string }[];
   status: 'active' | 'inactive' | 'draft';
+  tags: string[];
   variants: { name: string; value: string }[];
 }
 const productSchema = new Schema<IProduct>(
@@ -36,6 +38,7 @@ const productSchema = new Schema<IProduct>(
       enum: ['active', 'inactive', 'draft'],
       default: 'draft',
     },
+    tags: [{ type: String }],
     variants: [
       {
         name: { type: String },
@@ -60,5 +63,7 @@ productSchema.index(
     name: 'productSearch',
   },
 );
+productSchema.post('save', deleteProductKeysFromRedis);
+
 const Product = models.Product || model<IProduct>('Product', productSchema);
 export default Product;

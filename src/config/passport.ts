@@ -1,28 +1,24 @@
-import { configDotenv } from 'dotenv';
 import passport from 'passport';
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
+
+import { configDotenv } from 'dotenv';
 import User from '../models/userSchema';
 configDotenv();
-const JWT_SECRET = process.env._JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is not defined');
-}
-
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: JWT_SECRET,
+  secretOrKey: process.env._JWT_SECRET as string,
 };
 
-const jwtStrategy = new JwtStrategy(jwtOptions, async (payload, done) => {
-  try {
-    const user = await User.findById(payload.id);
+// Register the JWT strategy
+passport.use(
+  new JwtStrategy(jwtOptions, (jwtPayload, done) => {
+    const user = User.findOne({ id: jwtPayload.id });
     if (user) {
       return done(null, user);
+    } else {
+      return done(null, false);
     }
-    return done(null, false);
-  } catch (error) {
-    return done(error, false);
-  }
-});
-passport.use(jwtStrategy);
+  }),
+);
+
 export default passport;

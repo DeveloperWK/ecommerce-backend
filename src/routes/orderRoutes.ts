@@ -8,7 +8,7 @@ import {
 const router: Router = Router();
 
 router
-  .get('', getOrders)
+  .get('/:userId', getOrders)
   .get('/:id', getOrderDetailsById)
   .post('', createOrder);
 

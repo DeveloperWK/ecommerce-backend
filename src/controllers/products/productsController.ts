@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose, { Types } from 'mongoose';
 import Category from '../../models/categorySchema';
-import Product from '../../models/productSchema';
+import Product, { IProduct } from '../../models/productSchema';
+import deleteProductKeysFromRedis from '../../utils/deleteProductKeysFromRedis';
+import { cacheData, getCacheData } from '../../utils/redisUtility';
 interface SearchQuery {
   q: string;
 }
@@ -12,10 +14,27 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
     const pageSize = Number(limit) || 5;
     const currentPage = Number(page) || 1;
     const skip = (currentPage - 1) * pageSize;
+    const cacheKey = `products:${currentPage}:${pageSize}:${min}:${max}:${category}`;
+    const cachedData = (await getCacheData(cacheKey)) as {
+      products: IProduct[];
+      count: number;
+      currentPage: number;
+      totalPages: number;
+    } | null;
+    if (cachedData) {
+      const { products, count, currentPage, totalPages } = cachedData;
+      res.status(200).json({
+        message: 'Products retrieved successfully (from cache)',
+        products,
+        currentPage,
+        count,
+        totalPages,
+      });
+      return;
+    }
     const filters: {
       price?: { $gte: number; $lte: number };
       category?: Types.ObjectId;
-
       // stock?: { $gte: number };
     } = {};
 
@@ -38,9 +57,18 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
         filters.category = categoryDoc._id as Types.ObjectId;
       }
     }
-    const products = await Product.find(filters).skip(skip).limit(pageSize);
-    const count = await Product.countDocuments(filters);
 
+    const products: IProduct[] = await Product.find(filters)
+      .skip(skip)
+      .limit(pageSize);
+    const count = await Product.countDocuments(filters);
+    const dataToCache = {
+      products,
+      count,
+      currentPage,
+      totalPages: Math.ceil(count / pageSize),
+    };
+    await cacheData(cacheKey, dataToCache);
     res.status(200).json({
       message: 'Products retrieved successfully',
       products,
@@ -184,7 +212,7 @@ const updateProduct = async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ message: 'Product id is required' });
       return;
     }
-    if (!mongoose.Types.ObjectId.isValid(category)) {
+    if (category && !mongoose.Types.ObjectId.isValid(category)) {
       res.status(400).json({ message: 'Invalid category id' });
       return;
     }
@@ -205,6 +233,9 @@ const updateProduct = async (req: Request, res: Response): Promise<void> => {
       },
       { new: true },
     );
+    if (product) {
+      deleteProductKeysFromRedis();
+    }
     res.status(200).json({
       message: 'Product updated successfully',
       product,
@@ -223,6 +254,9 @@ const deleteProduct = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     const product = await Product.findByIdAndDelete(id);
+    if (product) {
+      deleteProductKeysFromRedis();
+    }
     res.status(200).json({
       message: 'Product deleted successfully',
       product,
