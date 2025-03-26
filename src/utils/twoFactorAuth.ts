@@ -1,4 +1,4 @@
-import { transporter } from './verifyOtpSend';
+import { transporter } from './verifyOtpSend.service';
 
 const twoFactorAuthOtp = async (email: string, otp: string) => {
   await transporter.sendMail({

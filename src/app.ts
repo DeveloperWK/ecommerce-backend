@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { configDotenv } from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -13,6 +14,7 @@ import orderRoutes from './routes/orderRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import productRoutes from './routes/productRoutes';
 import reviewsRatingsRoutes from './routes/reviewsRatingsRoutes';
+configDotenv();
 const app = express();
 
 app.use(

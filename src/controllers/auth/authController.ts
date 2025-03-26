@@ -1,17 +1,19 @@
 import { Request, Response } from 'express';
 import speakeasy from 'speakeasy';
 import User from '../../models/userSchema';
-import emailVerifiedSuccessMail from '../../utils/emailVerifiedSuccessMail';
+import emailVerifiedSuccessMail from '../../utils/emailVerifiedSuccessMail.service';
 import generateOtp from '../../utils/generateOtp';
 import generateToken from '../../utils/generateToken';
 import twoFactorAuthOtp from '../../utils/twoFactorAuth';
-import verifyOtpSend from '../../utils/verifyOtpSend';
+import verifyOtpSend from '../../utils/verifyOtpSend.service';
+import { loginSchema, registerSchema } from './authValidator';
 const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400).json({ message: 'Email and password are required' });
+  const { error } = loginSchema.validate(req.body);
+  if (error) {
+    res.status(400).json({ message: error.details[0].message });
     return;
   }
+  const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -50,8 +52,20 @@ const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 const register = async (req: Request, res: Response): Promise<void> => {
-  const { email, password, firstName, lastName, phoneNumber, address } =
-    req.body;
+  const { error } = registerSchema.validate(req.body);
+  if (error) {
+    res.status(400).json({ message: error.details[0].message });
+    return;
+  }
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+    phoneNumber,
+    address,
+    confirmPassword,
+  } = req.body;
   try {
     const userCheck = await User.findOne({ email });
     if (userCheck) {

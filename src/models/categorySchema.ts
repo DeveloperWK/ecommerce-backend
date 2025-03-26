@@ -9,7 +9,7 @@ const categorySchema = new Schema<ICategory>(
   {
     name: { type: String, required: true, unique: true },
     description: { type: String },
-    parent: { type: Schema.Types.ObjectId, ref: 'Category' }, // For nested categories
+    parent: { type: Schema.Types.ObjectId, ref: 'Category', default: null }, // For nested categories
   },
   { timestamps: true },
 );

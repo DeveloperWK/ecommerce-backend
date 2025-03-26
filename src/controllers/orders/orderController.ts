@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import Cart from '../../models/cartSchema';
 import Order from '../../models/orderSchema';
 const getOrders = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
@@ -142,6 +143,7 @@ const createOrder = async (req: Request, res: Response): Promise<void> => {
       paymentStatus,
       orderNumber,
     }).save();
+    await Cart.findByIdAndDelete(user);
     res.status(201).json({
       message: 'Order created successfully',
       order,

@@ -1,4 +1,4 @@
-import { transporter } from './verifyOtpSend';
+import { transporter } from './verifyOtpSend.service';
 
 const emailVerifiedSuccessMail = async (email: string) => {
   await transporter.sendMail({

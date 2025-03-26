@@ -4,6 +4,7 @@ import Category from '../../models/categorySchema';
 import Product, { IProduct } from '../../models/productSchema';
 import deleteProductKeysFromRedis from '../../utils/deleteProductKeysFromRedis';
 import { cacheData, getCacheData } from '../../utils/redisUtility';
+import { createProductSchema } from './productsValidator';
 interface SearchQuery {
   q: string;
 }
@@ -11,7 +12,7 @@ interface SearchQuery {
 const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page, limit, min, max, category } = req.query;
-    const pageSize = Number(limit) || 5;
+    const pageSize = Number(limit) || 8;
     const currentPage = Number(page) || 1;
     const skip = (currentPage - 1) * pageSize;
     const cacheKey = `products:${currentPage}:${pageSize}:${min}:${max}:${category}`;
@@ -140,6 +141,11 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
 };
 
 const createProduct = async (req: Request, res: Response): Promise<void> => {
+  const { error } = createProductSchema.validate(req.body);
+  if (error) {
+    res.status(400).json({ message: error.details[0].message });
+    return;
+  }
   const {
     title,
     description,
@@ -155,13 +161,6 @@ const createProduct = async (req: Request, res: Response): Promise<void> => {
     status,
   } = req.body;
   try {
-    if (!title || !description || !sku || !price || !category) {
-      res.status(400).json({
-        message:
-          'title, description, sku, price, and category are required fields',
-      });
-      return;
-    }
     if (!mongoose.Types.ObjectId.isValid(category)) {
       res.status(400).json({ message: 'Invalid category id' });
       return;
@@ -267,6 +266,7 @@ const deleteProduct = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
+
 export {
   createProduct,
   deleteProduct,

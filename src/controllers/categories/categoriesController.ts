@@ -23,7 +23,7 @@ const createCategory = async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
-    const category = await new Category({ name, description, parent }).save();
+    const category = await new Category({ name, description }).save();
     res.status(201).json({
       message: 'Category created successfully',
       category,
@@ -31,6 +31,7 @@ const createCategory = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(500).json({
       message: 'Internal server error',
+      error,
     });
   }
 };

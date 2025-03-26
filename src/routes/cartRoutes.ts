@@ -3,13 +3,12 @@ import {
   cart,
   deleteCartItem,
   getCartItems,
-  updateCartItem,
 } from '../controllers/cart/cartController';
 const router: Router = Router();
 router
-  .get('', getCartItems)
+  .get('/:userId', getCartItems)
   .post('', cart)
-  .patch('/items/:id', updateCartItem)
-  .delete('/items/:id', deleteCartItem);
+  // .patch('/items/:id', updateCartItem)
+  .post('/remove', deleteCartItem);
 
 export default router;

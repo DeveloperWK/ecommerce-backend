@@ -31,11 +31,9 @@ const userSchema = new Schema<IUser>(
     lastName: { type: String, required: true, trim: true },
     address: [
       {
-        street: { type: String },
-        city: { type: String },
-        state: { type: String },
-        country: { type: String },
-        postalCode: { type: String },
+        country: { type: String, default: 'Bangladesh' },
+        division: { type: String },
+        district: { type: String },
         isDefault: { type: Boolean, default: false },
         fullAddress: { type: String, trim: true },
       },
