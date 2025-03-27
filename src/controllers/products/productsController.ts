@@ -1,13 +1,101 @@
 import { Request, Response } from 'express';
 import mongoose, { Types } from 'mongoose';
+import redisClient from '../../config/redisClient';
 import Category from '../../models/categorySchema';
 import Product, { IProduct } from '../../models/productSchema';
 import deleteProductKeysFromRedis from '../../utils/deleteProductKeysFromRedis';
+import generateETag from '../../utils/generateETag';
 import { cacheData, getCacheData } from '../../utils/redisUtility';
 import { createProductSchema } from './productsValidator';
 interface SearchQuery {
   q: string;
 }
+
+// const getProducts = async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { page, limit, min, max, category } = req.query;
+//     const pageSize = Number(limit) || 8;
+//     const currentPage = Number(page) || 1;
+//     const skip = (currentPage - 1) * pageSize;
+//     const cacheKey = `products:${currentPage}:${pageSize}:${min}:${max}:${category}`;
+//     const cachedData = (await getCacheData(cacheKey)) as {
+//       products: IProduct[];
+//       count: number;
+//       currentPage: number;
+//       totalPages: number;
+//     } | null;
+//     const cachedETag = await redisClient.get(`${cacheKey}:etag`);
+//     const clientETag = req.headers['if-none-match'];
+//     if (cachedData && clientETag === cachedETag) {
+//       res.status(304).end(); // Not Modified
+//       return;
+//     }
+//     if (cachedData) {
+//       const { products, count, currentPage, totalPages } = cachedData;
+//       res.set('ETag', cachedETag!).status(200).json({
+//         message: 'Products retrieved successfully (from cache)',
+//         products,
+//         currentPage,
+//         count,
+//         totalPages,
+//       });
+//       return;
+//     }
+//     const filters: {
+//       price?: { $gte: number; $lte: number };
+//       category?: Types.ObjectId;
+//       // stock?: { $gte: number };
+//     } = {};
+
+//     if (typeof min === 'string' && typeof max === 'string') {
+//       filters.price = {
+//         $gte: Number(min),
+//         $lte: Number(max),
+//       };
+//     }
+
+//     if (typeof category === 'string') {
+//       if (mongoose.Types.ObjectId.isValid(category)) {
+//         filters.category = new mongoose.Types.ObjectId(category);
+//       } else {
+//         const categoryDoc = await Category.findOne({ name: category });
+//         if (!categoryDoc) {
+//           res.status(404).json({ message: 'Category not found' });
+//           return;
+//         }
+//         filters.category = categoryDoc._id as Types.ObjectId;
+//       }
+//     }
+
+//     const products: IProduct[] = await Product.find(filters)
+//       .skip(skip)
+//       .limit(pageSize);
+//     const count = await Product.countDocuments(filters);
+//     const dataToCache = {
+//       products,
+//       count,
+//       currentPage,
+//       totalPages: Math.ceil(count / pageSize),
+//     };
+//     const etag = generateETag(JSON.stringify(dataToCache));
+//     await cacheData(cacheKey, dataToCache);
+//     await redisClient.set(`${cacheKey}:etag`, etag, 'EX', 3600);
+//     res
+//       .set('ETag', etag)
+//       .status(200)
+//       .json({
+//         message: 'Products retrieved successfully',
+//         products,
+//         currentPage,
+//         count,
+//         totalPages: Math.ceil(count / pageSize),
+//       });
+//   } catch (error) {
+//     res.status(500).json({
+//       message: 'Internal server error',
+//     });
+//   }
+// };
 
 const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -16,36 +104,12 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
     const currentPage = Number(page) || 1;
     const skip = (currentPage - 1) * pageSize;
     const cacheKey = `products:${currentPage}:${pageSize}:${min}:${max}:${category}`;
-    const cachedData = (await getCacheData(cacheKey)) as {
-      products: IProduct[];
-      count: number;
-      currentPage: number;
-      totalPages: number;
-    } | null;
-    if (cachedData) {
-      const { products, count, currentPage, totalPages } = cachedData;
-      res.status(200).json({
-        message: 'Products retrieved successfully (from cache)',
-        products,
-        currentPage,
-        count,
-        totalPages,
-      });
-      return;
-    }
+
+    // --- 1. Validate category early (avoid cache checks if invalid) ---
     const filters: {
       price?: { $gte: number; $lte: number };
       category?: Types.ObjectId;
-      // stock?: { $gte: number };
     } = {};
-
-    if (typeof min === 'string' && typeof max === 'string') {
-      filters.price = {
-        $gte: Number(min),
-        $lte: Number(max),
-      };
-    }
-
     if (typeof category === 'string') {
       if (mongoose.Types.ObjectId.isValid(category)) {
         filters.category = new mongoose.Types.ObjectId(category);
@@ -55,13 +119,49 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
           res.status(404).json({ message: 'Category not found' });
           return;
         }
-        filters.category = categoryDoc._id as Types.ObjectId;
+        filters.category = categoryDoc._id;
       }
     }
 
-    const products: IProduct[] = await Product.find(filters)
+    // --- 2. Check Cache ---
+    const cachedData = (await getCacheData(cacheKey)) as {
+      products: IProduct[];
+      count: number;
+      currentPage: number;
+      totalPages: number;
+    } | null;
+    const cachedETag = await redisClient.get(`${cacheKey}:etag`);
+    const clientETag = req.headers['if-none-match'];
+
+    // --- 3. Handle 304 (Not Modified) ---
+    if (cachedData && clientETag && clientETag === cachedETag) {
+      res.status(304).end();
+      return;
+    }
+
+    // --- 4. Serve Cached Data (if exists) ---
+    if (cachedData) {
+      const etag = cachedETag || generateETag(JSON.stringify(cachedData)); // Fallback ETag
+      res
+        .set('ETag', etag)
+        .set('Cache-Control', 'public, max-age=3600')
+        .status(200)
+        .json({
+          message: 'Products retrieved successfully (from cache)',
+          ...cachedData,
+        });
+      return;
+    }
+
+    // --- 5. Fetch from DB ---
+    if (typeof min === 'string' && typeof max === 'string') {
+      filters.price = { $gte: Number(min), $lte: Number(max) };
+    }
+
+    const products = await Product.find(filters)
       .skip(skip)
-      .limit(pageSize);
+      .limit(pageSize)
+      .sort({ createdAt: -1 });
     const count = await Product.countDocuments(filters);
     const dataToCache = {
       products,
@@ -69,21 +169,24 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
       currentPage,
       totalPages: Math.ceil(count / pageSize),
     };
+
+    // --- 6. Cache + Respond ---
+    const etag = generateETag(JSON.stringify(dataToCache));
     await cacheData(cacheKey, dataToCache);
-    res.status(200).json({
-      message: 'Products retrieved successfully',
-      products,
-      currentPage,
-      count,
-      totalPages: Math.ceil(count / pageSize),
-    });
+    await redisClient.set(`${cacheKey}:etag`, etag, 'EX', 3600);
+
+    res
+      .set('ETag', etag)
+      .set('Cache-Control', 'public, max-age=3600')
+      .status(200)
+      .json({
+        message: 'Products retrieved successfully',
+        ...dataToCache,
+      });
   } catch (error) {
-    res.status(500).json({
-      message: 'Internal server error',
-    });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 const productSearch = async (
   req: Request<{}, {}, {}, SearchQuery>,
   res: Response,
@@ -186,6 +289,7 @@ const createProduct = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(500).json({
       message: 'Internal server error',
+      error,
     });
   }
 };
@@ -195,7 +299,6 @@ const updateProduct = async (req: Request, res: Response): Promise<void> => {
   const {
     title,
     description,
-    sku,
     price,
     salePrice,
     stock,

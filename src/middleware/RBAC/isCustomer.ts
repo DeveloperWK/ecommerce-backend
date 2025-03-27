@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 
 const isCustomer = (res: Response, req: Request, next: NextFunction) => {
   try {
-    if (!req.locals || req.locals.role !== 'customer') {
+    if (!req.locals || req.locals.user.role !== 'customer') {
       res.status(403).json({ message: 'Unauthorized: User is not a customer' });
       return;
     }

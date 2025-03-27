@@ -14,9 +14,20 @@ import orderRoutes from './routes/orderRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import productRoutes from './routes/productRoutes';
 import reviewsRatingsRoutes from './routes/reviewsRatingsRoutes';
+
 configDotenv();
 const app = express();
-
+// app.use(
+//   nodeApiGuard({
+//     enableLogging: true,
+//     rateLimit: {
+//       maxRequests: 5,
+//       windowMs: 60000,
+//       message: 'Too many requests from this IP, please try again later.',
+//     },
+//     logToFile: true,
+//   }),
+// );
 app.use(
   cors({
     origin: '*',
