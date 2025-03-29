@@ -144,7 +144,6 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
       const etag = cachedETag || generateETag(JSON.stringify(cachedData)); // Fallback ETag
       res
         .set('ETag', etag)
-        .set('Cache-Control', 'public, max-age=3600')
         .status(200)
         .json({
           message: 'Products retrieved successfully (from cache)',
@@ -161,7 +160,8 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
     const products = await Product.find(filters)
       .skip(skip)
       .limit(pageSize)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .populate('category', 'name');
     const count = await Product.countDocuments(filters);
     const dataToCache = {
       products,
