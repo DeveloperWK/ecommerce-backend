@@ -231,7 +231,7 @@ const getProductById = async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ message: 'Product id is required' });
       return;
     }
-    const product = await Product.findById(id);
+    const product = await Product.findById(id).populate('category', 'name');
     res.status(200).json({
       message: 'Product retrieved successfully',
       product,

@@ -3,6 +3,7 @@ import { configDotenv } from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+
 import passport from './config/passport';
 import errorHandler from './middleware/errorHandler';
 import notFoundMiddleware from './middleware/notFoundMiddleware';
@@ -14,14 +15,15 @@ import orderRoutes from './routes/orderRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import productRoutes from './routes/productRoutes';
 import reviewsRatingsRoutes from './routes/reviewsRatingsRoutes';
-
 configDotenv();
 const app = express();
+
+app.disable('x-powered-by');
 // app.use(
 //   nodeApiGuard({
 //     enableLogging: true,
 //     rateLimit: {
-//       maxRequests: 5,
+//       maxRequests: 100,
 //       windowMs: 60000,
 //       message: 'Too many requests from this IP, please try again later.',
 //     },
@@ -49,6 +51,8 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/reviews', reviewsRatingsRoutes);
 app.use('/api/v1/admin', adminSpecificRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
+
+
 //Middleware
 app.use(notFoundMiddleware);
 app.use(errorHandler);

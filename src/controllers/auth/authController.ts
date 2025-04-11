@@ -39,6 +39,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
         message: 'Login successful',
         token,
         role: user.role,
+        userId: user._id,
       });
     } else {
       res
@@ -153,6 +154,7 @@ const twoFactorAuth = async (req: Request, res: Response): Promise<void> => {
       message: 'Login successful & OTP verified',
       token,
       role: user.role,
+      userId: user._id,
     });
   } catch (error) {
     console.error(error);
