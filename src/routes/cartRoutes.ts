@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import {
-  cart,
+  addToCart,
   deleteCartItem,
   getCartItems,
 } from '../controllers/cart/cartController';
 const router: Router = Router();
 router
   .get('/:userId', getCartItems)
-  .post('', cart)
+  .post('', addToCart)
   // .patch('/items/:id', updateCartItem)
   .post('/remove', deleteCartItem);
 

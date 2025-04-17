@@ -17,7 +17,6 @@ import productRoutes from './routes/productRoutes';
 import reviewsRatingsRoutes from './routes/reviewsRatingsRoutes';
 configDotenv();
 const app = express();
-
 app.disable('x-powered-by');
 // app.use(
 //   nodeApiGuard({
@@ -51,7 +50,6 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/reviews', reviewsRatingsRoutes);
 app.use('/api/v1/admin', adminSpecificRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
-
 
 //Middleware
 app.use(notFoundMiddleware);

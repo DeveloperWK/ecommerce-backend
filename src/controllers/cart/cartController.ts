@@ -6,13 +6,15 @@ interface CartItem {
   quantity: number;
 }
 const getCartItems = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
-  if (!id) {
+  const { userId } = req.params;
+  if (!userId) {
     res.status(400).json({ message: 'User id is required' });
     return;
   }
   try {
-    const cart = await Cart.findById(id).populate('items.product');
+    const cart = await Cart.findOne({
+      user: new mongoose.Types.ObjectId(userId),
+    }).populate('items.product');
     if (!cart) {
       res.status(404).json({ message: 'Cart not found' });
       return;
@@ -28,15 +30,16 @@ const getCartItems = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const cart = async (req: Request, res: Response): Promise<void> => {
-  const { userId, productId, quantity } = req.body;
+/*
+const addToCart = async (req: Request, res: Response): Promise<void> => {
+  const { userId, productId, quantity = 1 } = req.body;
   if (!userId || !productId) {
     res.status(400).json({ message: 'User id and product id are required' });
     return;
   }
   try {
     let cart = await Cart.findOne({ user: userId });
-    if (!cart) cart = new Cart({ userId, items: [] });
+    if (!cart) cart = new Cart({ user: userId, items: [] });
     const productIndex = cart.items.findIndex((item: CartItem) =>
       item.product.equals(productId),
     );
@@ -53,34 +56,56 @@ const cart = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     res.status(500).json({
       message: 'Internal server error',
+      error,
     });
   }
 };
+*/
 
-// const updateCartItem = async (req: Request, res: Response): Promise<void> => {
-//   const { id } = req.params;
-//   const { items } = req.body;
+const addToCart = async (req: Request, res: Response): Promise<void> => {
+  const { userId, productId, quantity, variants } = req.body;
 
-//   try {
-//     const cart = await Cart.findByIdAndUpdate(
-//       id,
-//       { $set: { items } },
-//       { new: true },
-//     ).populate('items.product');
-//     if (!cart) {
-//       res.status(404).json({ message: 'Cart not found' });
-//       return;
-//     }
-//     res.status(200).json({
-//       message: 'Cart updated successfully',
-//       cart,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       message: 'Internal server error',
-//     });
-//   }
-// };
+  if (!userId || !productId) {
+    res.status(400).json({ message: 'User ID and Product ID are required' });
+    return;
+  }
+
+  try {
+    let cart = await Cart.findOne({ user: userId });
+    if (!cart) cart = new Cart({ user: userId, items: [] });
+
+    const productIndex = cart.items.findIndex((item: CartItem) =>
+      item.product.equals(productId),
+    );
+
+    if (productIndex > -1) {
+      // Product already in cart
+      if (quantity !== undefined) {
+        cart.items[productIndex].quantity += quantity;
+      } else {
+        cart.items[productIndex].quantity += 1;
+      }
+    } else {
+      // Product not in cart yet
+      cart.items.push({
+        product: productId,
+        quantity: quantity !== undefined ? quantity : 1,
+        variants,
+      });
+    }
+
+    await cart.save();
+    res.status(200).json({
+      message: 'Cart updated successfully',
+      cart,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Internal server error',
+      error,
+    });
+  }
+};
 
 const deleteCartItem = async (req: Request, res: Response): Promise<void> => {
   const { userId, productId } = req.body;
@@ -98,7 +123,7 @@ const deleteCartItem = async (req: Request, res: Response): Promise<void> => {
       await cart.save();
     }
     res.status(200).json({
-      message: 'Cart deleted successfully',
+      message: 'Cart item deleted successfully',
       cart,
     });
   } catch (error) {
@@ -107,5 +132,4 @@ const deleteCartItem = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
-
-export { cart, deleteCartItem, getCartItems };
+export { addToCart, deleteCartItem, getCartItems };
