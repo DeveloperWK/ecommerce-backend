@@ -4,7 +4,6 @@ const isAdmin = (req: Request, res: Response, next: NextFunction): void => {
   try {
     // Check if req.locals exists and has the 'user' object with 'role' property
     if (!req.locals?.user || req.locals.user.role !== 'admin') {
-      console.log('User role:', req.locals?.user?.role); // Log the role for debugging
       res.status(403).json({ message: 'Unauthorized: User is not an admin' });
       return;
     }

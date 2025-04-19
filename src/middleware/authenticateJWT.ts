@@ -25,10 +25,8 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
         return next(err);
       }
       if (!user) {
-        console.log('No user found in JWT payload');
         return res.status(401).json({ message: 'Unauthorized' });
       }
-      console.log('User object from JWT:', user); // Log the user object for debugging
       req.locals = { user }; // Attach the user object to req.locals
       next();
     },

@@ -19,10 +19,8 @@ passport.use(
         .lean()
         .select('email role'); // Use `_id` instead of `id` for MongoDB
       if (!user) {
-        console.log('No user found with ID:', jwtPayload.id);
         return done(null, false); // No user found
       }
-      console.log('User found:', user);
       return done(null, user); // Pass the resolved user document to the callback
     } catch (error) {
       console.error('Error finding user:', error);

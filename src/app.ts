@@ -1,9 +1,10 @@
-import cors from 'cors';
 import { configDotenv } from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import { createServer } from 'node:http';
+import { Server } from 'socket.io';
 import passport from './config/passport';
 import errorHandler from './middleware/errorHandler';
 import notFoundMiddleware from './middleware/notFoundMiddleware';
@@ -17,6 +18,21 @@ import productRoutes from './routes/productRoutes';
 import reviewsRatingsRoutes from './routes/reviewsRatingsRoutes';
 configDotenv();
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  },
+});
+io.on('connection', (socket) => {
+  console.log('🔥 A user connected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('❌ User disconnected:', socket.id);
+  });
+});
+
 app.disable('x-powered-by');
 // app.use(
 //   nodeApiGuard({
@@ -29,13 +45,7 @@ app.disable('x-powered-by');
 //     logToFile: true,
 //   }),
 // );
-app.use(
-  cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-  }),
-);
+
 app.use(express.json());
 app.use(passport.initialize());
 app.use(helmet());
@@ -55,4 +65,4 @@ app.use('/api/v1/categories', categoriesRoutes);
 app.use(notFoundMiddleware);
 app.use(errorHandler);
 
-export default app;
+export default server;

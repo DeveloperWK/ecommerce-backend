@@ -1,10 +1,10 @@
 import { configDotenv } from 'dotenv';
-import app from './app';
 import { connectDB } from './config/database';
+import server from './app';
 configDotenv();
 const PORT = process.env._PORT || 3000;
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
 });

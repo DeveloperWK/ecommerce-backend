@@ -4,7 +4,6 @@ import Cart from '../../models/cartSchema';
 import Order from '../../models/orderSchema';
 const getOrders = async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
-  console.log(userId);
   try {
     if (!userId) {
       res.status(400).json({ message: 'User id is required' });
