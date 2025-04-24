@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose, { Types } from 'mongoose';
-import redisClient from '../../config/redisClient';
+import redisClientConfig from '../../config/redisClient.config';
 import Category from '../../models/categorySchema';
 import Product, { IProduct } from '../../models/productSchema';
 import deleteProductKeysFromRedis from '../../utils/deleteProductKeysFromRedis';
@@ -43,7 +43,7 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
       currentPage: number;
       totalPages: number;
     } | null;
-    const cachedETag = await redisClient.get(`${cacheKey}:etag`);
+    const cachedETag = await redisClientConfig.get(`${cacheKey}:etag`);
     const clientETag = req.headers['if-none-match'];
 
     // --- 3. Handle 304 (Not Modified) ---
@@ -86,7 +86,7 @@ const getProducts = async (req: Request, res: Response): Promise<void> => {
     // --- 6. Cache + Respond ---
     const etag = generateETag(JSON.stringify(dataToCache));
     await cacheData(cacheKey, dataToCache);
-    await redisClient.set(`${cacheKey}:etag`, etag, 'EX', 3600);
+    await redisClientConfig.set(`${cacheKey}:etag`, etag, 'EX', 3600);
 
     res
       .set('ETag', etag)

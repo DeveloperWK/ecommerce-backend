@@ -1,17 +1,17 @@
 import { Redis } from 'ioredis';
 
-const redisClient = new Redis();
+const redisClientConfig = new Redis();
 
-redisClient.on('connect', () => {
+redisClientConfig.on('connect', () => {
   console.log('🍃 Redis connected');
 });
-redisClient.on('error', (err) => {
+redisClientConfig.on('error', (err) => {
   console.error('❌ Redis connection error:', err.message);
 });
 process.on('SIGINT', async () => {
   console.log('Closing Redis connection...');
-  await redisClient.quit();
+  await redisClientConfig.quit();
   process.exit(0);
 });
 
-export default redisClient;
+export default redisClientConfig;

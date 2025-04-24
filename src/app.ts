@@ -5,7 +5,7 @@ import morgan from 'morgan';
 
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import passport from './config/passport';
+import passport from './config/passport.config';
 import errorHandler from './middleware/errorHandler';
 import notFoundMiddleware from './middleware/notFoundMiddleware';
 import adminSpecificRoutes from './routes/adminSpecificRoutes';
