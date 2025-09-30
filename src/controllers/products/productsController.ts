@@ -3,10 +3,10 @@ import mongoose, { Types } from 'mongoose';
 import redisClientConfig from '../../config/redisClient.config';
 import Category from '../../models/categorySchema';
 import Product, { IProduct } from '../../models/productSchema';
-import deleteProductKeysFromRedis from '../../utils/deleteProductKeysFromRedis';
 import generateETag from '../../utils/generateETag';
 import { cacheData, getCacheData } from '../../utils/redisUtility';
 import { createProductSchema } from './productsValidator';
+import deleteProductKeysFromRedis from '../../utils/deleteProductKeysFromRedis';
 interface SearchQuery {
   q: string;
 }
@@ -263,15 +263,20 @@ const updateProduct = async (req: Request, res: Response): Promise<void> => {
 };
 const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
+  console.log(`Deleting product ${id}`);
   try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: 'Invalid product ID' });
+      return;
+    }
+
     if (!id) {
       res.status(400).json({ message: 'Product id is required' });
       return;
     }
-    const product = await Product.findByIdAndDelete(id);
-    if (product) {
-      deleteProductKeysFromRedis();
-    }
+    const product = await Product.deleteOne({ _id: id });
+    await deleteProductKeysFromRedis();
+
     res.status(200).json({
       message: 'Product deleted successfully',
       product,

@@ -10,7 +10,10 @@ const getProductsReview = async (
       res.status(400).json({ message: 'Product id is required' });
       return;
     }
-    const reviews = await Review.find({ product: id });
+    const reviews = await Review.find({ product: id }).populate(
+      'user',
+      'firstName lastName -_id',
+    );
     if (!reviews) {
       res.status(404).json({ message: 'Review not found' });
       return;

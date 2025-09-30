@@ -2,9 +2,10 @@ import { configDotenv } from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
-
+/*
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
+*/
 import passport from './config/passport.config';
 import errorHandler from './middleware/errorHandler';
 import notFoundMiddleware from './middleware/notFoundMiddleware';
@@ -16,8 +17,18 @@ import orderRoutes from './routes/orderRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import productRoutes from './routes/productRoutes';
 import reviewsRatingsRoutes from './routes/reviewsRatingsRoutes';
+import cors from 'cors';
+import deleteProductKeysFromRedis from './utils/deleteProductKeysFromRedis';
 configDotenv();
 const app = express();
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  }),
+);
+/*
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
@@ -32,7 +43,7 @@ io.on('connection', (socket) => {
     console.log('❌ User disconnected:', socket.id);
   });
 });
-
+*/
 app.disable('x-powered-by');
 // app.use(
 //   nodeApiGuard({
@@ -60,9 +71,18 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/reviews', reviewsRatingsRoutes);
 app.use('/api/v1/admin', adminSpecificRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
+// Temporary test route
+app.get('/test-delete-redis', async (req, res) => {
+  try {
+    await deleteProductKeysFromRedis();
+    res.send('Redis keys deleted');
+  } catch (error) {
+    res.status(500).send('Error deleting Redis keys');
+  }
+});
 
 //Middleware
 app.use(notFoundMiddleware);
 app.use(errorHandler);
 
-export default server;
+export default app;
